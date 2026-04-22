@@ -13,47 +13,38 @@ interface HomePageProps {
 }
 
 export const HomePage: React.FC<HomePageProps> = ({ onLogout }) => {
-  const [games, setGames] = useState<Game[]>([
-    {
-      id: "1",
-      title: "The Legend of Zelda: Breath of the Wild",
-      coverArt: "https://via.placeholder.com/150x220?text=Zelda",
-      releaseDate: "2017-03-03",
-      rating: 5,
-      dateCompleted: "2025-12-01",
-    },
-    {
-      id: "2",
-      title: "Elden Ring",
-      coverArt: "https://via.placeholder.com/150x220?text=Elden+Ring",
-      releaseDate: "2022-02-25",
-      rating: 4,
-      dateCompleted: "2025-11-15",
-    },
-  ]);
+  // TODO: will probably need to fetch from user's existing data or something?
+  const [games, setGames] = useState<Game[]>([]);
 
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [selectedGame, setSelectedGame] = useState<SearchResult | null>(null);
   const [editingGame, setEditingGame] = useState<Game | null>(null);
 
-  const handleSearch = (query: string) => {
+  // TODO: fix
+  const backendBaseUrl = "http://localhost:5000";
+
+  const handleSearch = async (query: string) => {
     if (query.length > 0) {
-      // Mock search results - would call API in real implementation
-      setSearchResults([
-        {
-          id: "3",
-          title: `${query} - Result 1`,
-          releaseDate: "2024-01-01",
-          coverArt: "https://via.placeholder.com/150x220?text=Game+1",
-        },
-        {
-          id: "4",
-          title: `${query} - Result 2`,
-          releaseDate: "2023-06-15",
-          coverArt: "https://via.placeholder.com/150x220?text=Game+2",
-        },
-      ]);
+      try {
+        const response = await fetch(
+          `${backendBaseUrl}/api/igdb/search?query=${encodeURIComponent(query)}`,
+        );
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to search games");
+        }
+        const games = data.games as SearchResult[];
+        games.map((g) => g.coverArt);
+        setSearchResults(
+          (games || []).sort(
+            (a, b) => (b.ratingCount || 0) - (a.ratingCount || 0),
+          ),
+        );
+      } catch (error) {
+        console.error("Search error:", error);
+        setSearchResults([]);
+      }
     } else {
       setSearchResults([]);
     }
@@ -90,9 +81,8 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout }) => {
     setShowRatingModal(true);
   };
 
-  const sortedGames = [...games].sort(
-    (a, b) =>
-      new Date(b.dateCompleted).getTime() - new Date(a.dateCompleted).getTime(),
+  const sortedGames = [...games].sort((a, b) =>
+    b.dateCompleted.localeCompare(a.dateCompleted),
   );
 
   return (
@@ -114,15 +104,18 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout }) => {
                   <img
                     src={game.coverArt}
                     alt={game.title}
-                    className="w-20 h-28 object-cover rounded-md"
+                    className="w-20 h-28 rounded-md object-cover"
                   />
                   <div className="flex-1 flex justify-between items-center">
                     <div>
-                      <h3 className="font-semibold text-lg mb-2 text-white">
+                      <h3 className="font-semibold text-lg mb-2 text-black">
                         {game.title}
                       </h3>
                       <p className="text-gray-400 text-sm">
-                        Released: {new Date(game.releaseDate).getFullYear()}
+                        Released:{" "}
+                        {game.releaseDate
+                          ? game.releaseDate.split("-")[0]
+                          : "N/A"}
                       </p>
                     </div>
                     <Button

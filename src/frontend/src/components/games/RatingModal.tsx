@@ -12,6 +12,12 @@ interface RatingModalProps {
   initialDate?: string;
 }
 
+export const getFormattedDate = (dateString?: string) => {
+  if (dateString) return dateString.split('T')[0];
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
 export const RatingModal: React.FC<RatingModalProps> = ({
   isOpen,
   onClose,
@@ -21,14 +27,12 @@ export const RatingModal: React.FC<RatingModalProps> = ({
   initialDate,
 }) => {
   const [rating, setRating] = useState(initialRating);
-  const [dateCompleted, setDateCompleted] = useState(
-    initialDate || new Date().toISOString().split("T")[0],
-  );
+  const [dateCompleted, setDateCompleted] = useState(() => getFormattedDate(initialDate));
 
   React.useEffect(() => {
     if (isOpen) {
       setRating(initialRating);
-      setDateCompleted(initialDate || new Date().toISOString().split("T")[0]);
+      setDateCompleted(getFormattedDate(initialDate));
     }
   }, [isOpen, initialRating, initialDate]);
 

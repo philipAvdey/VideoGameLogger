@@ -16,7 +16,7 @@ export const GameCard: React.FC<GameCardProps> = ({ game, onClick }) => {
         <img
           src={game.coverArt}
           alt={game.title}
-          className="w-20 h-28 object-cover rounded-md"
+          className="w-20 h-28 rounded-md object-cover"
         />
         <div className="flex-1">
           <h3 className="font-semibold text-lg mb-2">{game.title}</h3>
@@ -31,7 +31,8 @@ export const GameCard: React.FC<GameCardProps> = ({ game, onClick }) => {
             <div>
               <p className="text-sm text-gray-600">Completed</p>
               <p className="font-semibold">
-                {new Date(game.dateCompleted).toLocaleDateString()}
+                {game.dateCompleted.split("-").slice(1).join("/")}/
+                {game.dateCompleted.split("-")[0]}
               </p>
             </div>
           </div>

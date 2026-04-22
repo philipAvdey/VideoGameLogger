@@ -3,6 +3,7 @@ import React from "react";
 interface InputProps {
   placeholder?: string;
   onChange?: (value: string) => void;
+  onKeyPress?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   value?: string;
   type?: string;
   label?: string;
@@ -12,6 +13,7 @@ interface InputProps {
 export const Input: React.FC<InputProps> = ({
   placeholder,
   onChange,
+  onKeyPress,
   value,
   type = "text",
   label,
@@ -27,6 +29,7 @@ export const Input: React.FC<InputProps> = ({
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange?.(e.target.value)}
+        onKeyPress={onKeyPress}
         className="w-full px-4 py-2 border subtle-border rounded-lg smooth-transition focus:outline-none focus:ring-2 focus:ring-black"
       />
       {error && <p className="text-red-600 text-sm mt-1">{error}</p>}
