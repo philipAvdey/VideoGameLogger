@@ -13,6 +13,7 @@ interface SearchResult {
   title: string;
   releaseDate: string;
   coverArt: string;
+  ratingCount: number;
 }
 
 export type { Game, SearchResult }
