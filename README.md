@@ -79,7 +79,7 @@ A full-stack game logging app with a React + Vite frontend and Flask backend. Th
 
 - The frontend calls the backend at `http://localhost:5000`.
 - The backend exposes IGDB search at `GET /api/igdb/search?query=<term>`.
-- The backend expects `IGDB_CLIENT_ID` and `IGDB_CLIENT_SECRET` in `src/backend/.env`.
+- The backend expects `IGDB_CLIENT_ID` and `IGDB_CLIENT_SECRET` in `.env`.
 
 ## Common Commands
 
