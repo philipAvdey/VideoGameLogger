@@ -4,7 +4,7 @@ A full-stack game logging app with a React + Vite frontend and Flask backend. Th
 
 ## Project Structure
 
-- `requirements.txt` — Python dependencies for the backend
+- `src/backend/requirements.txt` — Python dependencies for the backend
 - `src/backend/` — Flask API server and IGDB integration
 - `src/frontend/` — React + Vite frontend
 
@@ -24,7 +24,7 @@ A full-stack game logging app with a React + Vite frontend and Flask backend. Th
    source venv/bin/activate
    ```
 
-2. Install Python dependencies:
+2. Install Python dependencies (have to be inside `src/backend`):
 
    ```bash
    pip install -r requirements.txt
