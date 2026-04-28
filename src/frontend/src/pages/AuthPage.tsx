@@ -12,7 +12,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticate }) => {
   const [isLogin, setIsLogin] = useState(true);
 
   const handleAuth = () => {
-    onAuthenticate()
+    onAuthenticate();
   };
 
   return (
