@@ -23,7 +23,7 @@ export const GameList: React.FC<GameListProps> = ({ games, onGameClick }) => {
       <h2 className="text-2xl font-semibold mb-6">Your Game Diary</h2>
       {games.map((game) => (
         <GameCard
-          key={game.id}
+          key={game.ratingId}
           game={game}
           onClick={() => onGameClick?.(game)}
         />
