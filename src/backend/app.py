@@ -137,7 +137,9 @@ def add_ratings():
         "ratingId": str(uuid.uuid4()), #unique id for each game being stored
         "username": username,
         "title": data.get("title"),         #game title
-        "rating": data.get("rating")
+        "rating": data.get("rating"),
+        "dateCompleted": data.get("dateCompleted", ""),
+        "releaseDate": data.get("releaseDate", "")
     }
 
     #saves new rating to temp local list
@@ -145,6 +147,8 @@ def add_ratings():
 
     return jsonify({
         "message": "Game rating added",
+        "coverArt": data.get("coverArt", ""),
+        "releaseDate": data.get("releaseDate", ""),
         "rating": new_rating
     }), 201
 
