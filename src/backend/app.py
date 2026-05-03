@@ -1,6 +1,7 @@
 # TODO: create endpoints
 # TODO: probably should use multiple files for different purposes; e.g. login, user_services, data_services, etc.
 
+
 import os
 import uuid
 import time
@@ -15,6 +16,7 @@ from services.igdb.igdb_service import IgdbAPIService
 
 from models.search_result import SearchResult
 from models.video_game import Game
+from models.user import User
 
 from mypy_boto3_dynamodb.service_resource import Table
 import boto3
@@ -149,22 +151,20 @@ def add_ratings():
     # makes sure title and rating exist before adding the rating
     if "title" not in data or "rating" not in data:
         return jsonify({"error": "Must have a title and rating"}), 400
-
+    
+    # check if user exists in DB
+    response = table.get_item(Key={'userId': user_id})
+    if 'Item' not in response:
+        return jsonify({"error": "User not found"}), 404
+    
     # creates a new rating to store
-    new_rating = Game(
-        ratingId=str(uuid.uuid4()),  # unique id for each game being stored
-        userId=user_id,
-        title=data.get("title"),  # game title
-        rating=data.get("rating"),
-        dateCompleted=data.get("dateCompleted", ""),
-        releaseDate=data.get("releaseDate", ""),
-        coverArt=data.get("coverArt"),
-    )
+    new_game = Game.from_dict(data)
+    
+    user = User.from_dict(response['Item'])
+    user.diary.append(new_game.to_dict())
 
-    # saves new rating to temp local list
-    rated_games.append(new_rating)
-
-    return jsonify(new_rating.__dict__), 201
+    table.put_item(Item=user.to_dict())
+    return jsonify(new_game.to_dict()), 201
 
 
 # GET Endpoint: gets all rated games
