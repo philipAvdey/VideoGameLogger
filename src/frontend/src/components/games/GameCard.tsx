@@ -5,9 +5,14 @@ import type { Game } from "../../types/game";
 interface GameCardProps {
   game: Game;
   onClick?: () => void;
+  onDelete?: (game: Game) => void;
 }
 
-export const GameCard: React.FC<GameCardProps> = ({ game, onClick }) => {
+export const GameCard: React.FC<GameCardProps> = ({
+  game,
+  onClick,
+  onDelete,
+}) => {
   const stars = "★".repeat(game.rating) + "☆".repeat(5 - game.rating);
 
   return (
@@ -35,7 +40,18 @@ export const GameCard: React.FC<GameCardProps> = ({ game, onClick }) => {
               <p className="text-sm text-gray-600">Rating</p>
               <p className="font-semibold text-lg">{stars}</p>
             </div>
-            <div>
+            <div className="text-right">
+              {onDelete && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(game);
+                  }}
+                  className="mb-2 px-4 py-1 text-sm text-white bg-black hover:bg-gray-800 rounded transition flex items-center justify-center"
+                >
+                  Delete
+                </button>
+              )}
               <p className="text-sm text-gray-600">Completed</p>
               <p className="font-semibold">
                 {game.dateCompleted.split("-").slice(1).join("/")}/

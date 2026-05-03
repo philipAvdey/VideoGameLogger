@@ -5,9 +5,10 @@ import type { Game } from "../../types/game";
 interface GameListProps {
   games: Game[];
   onGameClick?: (game: Game) => void;
+  onGameDelete?: (game: Game) => void;
 }
 
-export const GameList: React.FC<GameListProps> = ({ games, onGameClick }) => {
+export const GameList: React.FC<GameListProps> = ({ games, onGameClick, onGameDelete }) => {
   if (games.length === 0) {
     return (
       <div className="text-center py-12">
@@ -26,6 +27,7 @@ export const GameList: React.FC<GameListProps> = ({ games, onGameClick }) => {
           key={game.ratingId}
           game={game}
           onClick={() => onGameClick?.(game)}
+          onDelete={onGameDelete}
         />
       ))}
     </div>

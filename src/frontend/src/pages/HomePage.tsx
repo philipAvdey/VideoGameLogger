@@ -58,12 +58,11 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout }) => {
         if (!response.ok) {
           throw new Error(data.error || "Failed to search games");
         }
-
-        const games = data.games as SearchResult[];
-
+        const games = Array.isArray(data.games) ? data.games : [];
         setSearchResults(
-          (games || []).sort(
-            (a, b) => (b.ratingCount || 0) - (a.ratingCount || 0),
+          games.sort(
+            (a: SearchResult, b: SearchResult) =>
+              (b.ratingCount || 0) - (a.ratingCount || 0),
           ),
         );
       } catch (error) {
@@ -93,6 +92,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout }) => {
             body: JSON.stringify({
               username: username,
               rating: rating,
+              dateCompleted: dateCompleted,
             }),
           },
         );
@@ -104,8 +104,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout }) => {
         }
 
         setEditingGame(null);
-      } else if (selectedGame){
-        console.log("selectedGame:", selectedGame);
+      } else if (selectedGame) {
         const response = await fetch(`${backendBaseUrl}/api/ratings`, {
           method: "POST",
           headers: {
@@ -117,7 +116,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout }) => {
             rating: rating,
             releaseDate: selectedGame.releaseDate,
             coverArt: selectedGame.coverArt,
-            dateCompleted: dateCompleted
+            dateCompleted: dateCompleted,
           }),
         });
 
@@ -143,7 +142,35 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout }) => {
     setShowRatingModal(true);
   };
 
-  const sortedGames = [...games];
+  const handleDeleteGame = async (game: Game) => {
+    if (!window.confirm(`Delete "${game.title}" from your diary?`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `${backendBaseUrl}/api/ratings/${game.ratingId}?username=${username}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to delete rating");
+      }
+
+      await loadRatedGames();
+    } catch (error) {
+      console.error("Delete error:", error);
+    }
+  };
+
+  const sortedGames = [...games].sort((a, b) => {
+    // Sort by dateCompleted in descending order (most recent first)
+    return b.dateCompleted.localeCompare(a.dateCompleted);
+  });
 
   return (
     <PageLayout>
@@ -192,7 +219,11 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout }) => {
         </div>
       )}
 
-      <GameList games={sortedGames} onGameClick={handleEditGame} />
+      <GameList
+        games={sortedGames}
+        onGameClick={handleEditGame}
+        onGameDelete={handleDeleteGame}
+      />
 
       <RatingModal
         isOpen={showRatingModal}
@@ -204,6 +235,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout }) => {
         gameTitle={editingGame?.title || selectedGame?.title || ""}
         onSubmit={handleRatingSubmit}
         initialRating={editingGame?.rating}
+        initialDate={editingGame?.dateCompleted}
       />
     </PageLayout>
   );

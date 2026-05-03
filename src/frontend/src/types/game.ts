@@ -3,10 +3,13 @@ interface Game {
   username: string;
   title: string;
   rating: number;
+  dateCompleted: string;
+  releaseDate: string;
+  coverArt: string
 }
 
 interface SearchResult {
-  id: string;
+  id: number;
   title: string;
   releaseDate: string;
   coverArt: string;
