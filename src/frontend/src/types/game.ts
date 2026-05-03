@@ -1,19 +1,19 @@
 interface Game {
-  id: string;
+  ratingId: string;
+  username: string;
   title: string;
-  coverArt: string;
-  releaseDate: string;
-  rating: number; // 1-10
+  rating: number;
   dateCompleted: string;
-  notes?: string;
+  releaseDate: string;
+  coverArt: string
 }
 
 interface SearchResult {
-  id: string;
+  id: number;
   title: string;
   releaseDate: string;
   coverArt: string;
   ratingCount: number;
 }
 
-export type { Game, SearchResult }
+export type { Game, SearchResult };

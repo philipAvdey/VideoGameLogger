@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { PageLayout } from "../components/layouts/PageLayout";
 import { Header } from "../components/common/Header";
 import { SearchBar } from "../components/search/SearchBar";
@@ -13,16 +13,38 @@ interface HomePageProps {
 }
 
 export const HomePage: React.FC<HomePageProps> = ({ onLogout }) => {
-  // TODO: will probably need to fetch from user's existing data or something?
   const [games, setGames] = useState<Game[]>([]);
-
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [selectedGame, setSelectedGame] = useState<SearchResult | null>(null);
   const [editingGame, setEditingGame] = useState<Game | null>(null);
 
-  // TODO: fix
   const backendBaseUrl = "http://localhost:5000";
+
+  // temporary username until login is connected
+  const username = "roger";
+
+  const loadRatedGames = async () => {
+    try {
+      const response = await fetch(
+        `${backendBaseUrl}/api/ratings?username=${username}`,
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to load ratings");
+      }
+
+      setGames(data.userRatings || []);
+    } catch (error) {
+      console.error("Load ratings error:", error);
+    }
+  };
+
+  useEffect(() => {
+    loadRatedGames();
+  }, []);
 
   const handleSearch = async (query: string) => {
     if (query.length > 0) {
@@ -30,15 +52,17 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout }) => {
         const response = await fetch(
           `${backendBaseUrl}/api/igdb/search?query=${encodeURIComponent(query)}`,
         );
+
         const data = await response.json();
+
         if (!response.ok) {
           throw new Error(data.error || "Failed to search games");
         }
-        const games = data.games as SearchResult[];
-        games.map((g) => g.coverArt);
+        const games = Array.isArray(data.games) ? data.games : [];
         setSearchResults(
-          (games || []).sort(
-            (a, b) => (b.ratingCount || 0) - (a.ratingCount || 0),
+          games.sort(
+            (a: SearchResult, b: SearchResult) =>
+              (b.ratingCount || 0) - (a.ratingCount || 0),
           ),
         );
       } catch (error) {
@@ -55,24 +79,61 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout }) => {
     setShowRatingModal(true);
   };
 
-  const handleRatingSubmit = (rating: number, dateCompleted: string) => {
-    if (editingGame) {
-      // Update existing game
-      setGames(
-        games.map((g) =>
-          g.id === editingGame.id ? { ...g, rating, dateCompleted } : g,
-        ),
-      );
-      setEditingGame(null);
-    } else if (selectedGame) {
-      // Add new game
-      const newGame: Game = {
-        ...selectedGame,
-        rating,
-        dateCompleted,
-      };
-      setGames([newGame, ...games]);
-      setSearchResults([]);
+  const handleRatingSubmit = async (rating: number, dateCompleted: string) => {
+    try {
+      if (editingGame) {
+        const response = await fetch(
+          `${backendBaseUrl}/api/ratings/${editingGame.ratingId}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              username: username,
+              rating: rating,
+              dateCompleted: dateCompleted,
+            }),
+          },
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to update rating");
+        }
+
+        setEditingGame(null);
+      } else if (selectedGame) {
+        const response = await fetch(`${backendBaseUrl}/api/ratings`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            username: username,
+            title: selectedGame.title,
+            rating: rating,
+            releaseDate: selectedGame.releaseDate,
+            coverArt: selectedGame.coverArt,
+            dateCompleted: dateCompleted,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to add rating");
+        }
+
+        setSelectedGame(null);
+        setSearchResults([]);
+      }
+
+      await loadRatedGames();
+      setShowRatingModal(false);
+    } catch (error) {
+      console.error("Rating submit error:", error);
     }
   };
 
@@ -81,9 +142,35 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout }) => {
     setShowRatingModal(true);
   };
 
-  const sortedGames = [...games].sort((a, b) =>
-    b.dateCompleted.localeCompare(a.dateCompleted),
-  );
+  const handleDeleteGame = async (game: Game) => {
+    if (!window.confirm(`Delete "${game.title}" from your diary?`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `${backendBaseUrl}/api/ratings/${game.ratingId}?username=${username}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to delete rating");
+      }
+
+      await loadRatedGames();
+    } catch (error) {
+      console.error("Delete error:", error);
+    }
+  };
+
+  const sortedGames = [...games].sort((a, b) => {
+    // Sort by dateCompleted in descending order (most recent first)
+    return b.dateCompleted.localeCompare(a.dateCompleted);
+  });
 
   return (
     <PageLayout>
@@ -132,7 +219,11 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout }) => {
         </div>
       )}
 
-      <GameList games={sortedGames} onGameClick={handleEditGame} />
+      <GameList
+        games={sortedGames}
+        onGameClick={handleEditGame}
+        onGameDelete={handleDeleteGame}
+      />
 
       <RatingModal
         isOpen={showRatingModal}
