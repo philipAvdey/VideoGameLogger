@@ -16,9 +16,25 @@ from services.igdb.igdb_service import IgdbAPIService
 from models.search_result import SearchResult
 from models.video_game import Game
 
+from mypy_boto3_dynamodb.service_resource import Table
+import boto3
+
 load_dotenv()
 app = Flask(__name__)
 CORS(app)
+
+# DynamoDB setup
+dynamodb = boto3.resource(
+    'dynamodb',
+    region_name=os.getenv('AWS_DEFAULT_REGION', 'us-east-1'),
+    endpoint_url=os.getenv('AWS_ENDPOINT_URL'),
+    aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID', 'test'),
+    aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY', 'test')
+)
+
+table: Table = dynamodb.Table('Users')
+
+
 IGDB_CLIENT_SECRET = os.getenv("IGDB_CLIENT_SECRET")
 IGDB_CLIENT_ID = os.getenv("IGDB_CLIENT_ID")
 
@@ -32,15 +48,15 @@ rate_limit = {}
 RATE_LIMIT = 100
 TIME_WINDOW = 60
 
-
-def is_rate_limited(username):
+# TODO: implement with dybamodb (not sure how)
+def is_rate_limited(user_id):
     now = time.time()
 
     # adds user to rate limit's list if first time
-    if username not in rate_limit:
-        rate_limit[username] = {"count": 0, "window_start": now}
+    if user_id not in rate_limit:
+        rate_limit[user_id] = {"count": 0, "window_start": now}
     # user's rate limit to track
-    user_limit = rate_limit[username]
+    user_limit = rate_limit[user_id]
 
     # resets window if time expires
     if now - user_limit["window_start"] >= TIME_WINDOW:
@@ -111,7 +127,7 @@ def search_games():
         return jsonify({"error": str(e)}), 500
 
 
-# POST Endpoint: adds new game rating
+# POST Endpoint: adds new game rating to corresponding user ID
 @app.route("/api/ratings", methods=["POST"])
 def add_ratings():
     data = request.get_json()
@@ -120,15 +136,14 @@ def add_ratings():
     if not data:
         return jsonify({"error": "No data"}), 400
 
-    # gets username from json
-    username = data.get("username")
+    # gets user ID from json
+    user_id = data.get("user_id")
 
-    # if no username, through error
-    if not username:
-        return jsonify({"error": "No username"}), 400
+    if not user_id:
+        return jsonify({"error": "User ID is required"}), 400
 
     # rate limiting for user
-    if is_rate_limited(username):
+    if is_rate_limited(user_id):
         return jsonify({"error": "Too many requests"}), 429
 
     # makes sure title and rating exist before adding the rating
@@ -138,7 +153,7 @@ def add_ratings():
     # creates a new rating to store
     new_rating = Game(
         ratingId=str(uuid.uuid4()),  # unique id for each game being stored
-        username=username,
+        userId=user_id,
         title=data.get("title"),  # game title
         rating=data.get("rating"),
         dateCompleted=data.get("dateCompleted", ""),
@@ -155,15 +170,15 @@ def add_ratings():
 # GET Endpoint: gets all rated games
 @app.route("/api/ratings", methods=["GET"])
 def get_ratings():
-    # username comes from URL query; ex: /api/ratings?username=hank
-    # later with login -> username = current_user
-    username = request.args.get("username")
+    # user_id comes from URL query; ex: /api/ratings?user_id=abc123
+    # later with login -> user_id = current_user.id
+    user_id = request.args.get("user_id")
 
-    if not username:
-        return jsonify({"error": "Username is required"}), 400
+    if not user_id:
+        return jsonify({"error": "User ID is required"}), 400
 
     # rate limit per user
-    if is_rate_limited(username):
+    if is_rate_limited(user_id):
         return jsonify({"error": "Too many requests"}), 429
 
     # returns user's ratings
@@ -171,7 +186,7 @@ def get_ratings():
 
     # loop to go through every saved game in list
     for game in rated_games:
-        if game.username == username:  # matches rating to user
+        if game.userId == user_id:  # matches rating to user
             user_ratings.append(game)  # adds rating to user's list
     return jsonify({"userRatings": [rating.__dict__ for rating in user_ratings]})
 
@@ -184,20 +199,20 @@ def update_rating(rating_id):
     if not data:
         return jsonify({"error": "No data"}), 400
 
-    # gets username from json
-    username = data.get("username")
+    # gets user ID from json
+    user_id = data.get("user_id")
 
-    if not username:
-        return jsonify({"error": "Username is required"}), 400
+    if not user_id:
+        return jsonify({"error": "User ID is required"}), 400
 
     # rate limit
-    if is_rate_limited(username):
+    if is_rate_limited(user_id):
         return jsonify({"error": "Too many requests"}), 429
 
-    # go through all rating searching for match(user_ratingID & username)
+    # go through all rating searching for match(user_ratingID & user_id)
     for game in rated_games:
-        # checks for a match with ratingID and username
-        if game.ratingId == rating_id and game.username == username:
+        # checks for a match with ratingID and user_id
+        if game.ratingId == rating_id and game.userId == user_id:
             # updates game rating and date
             game.rating = data.get("rating", game.rating)
             game.dateCompleted = data.get("dateCompleted", game.dateCompleted)
@@ -213,19 +228,19 @@ def update_rating(rating_id):
 # DELETE Endpoint: deletes a game rating
 @app.route("/api/ratings/<rating_id>", methods=["DELETE"])
 def delete_rating(rating_id):
-    username = request.args.get("username")
+    user_id = request.args.get("user_id")
 
-    if not username:
-        return jsonify({"error": "Username is required"}), 400
+    if not user_id:
+        return jsonify({"error": "User ID is required"}), 400
 
     # rate limit
-    if is_rate_limited(username):
+    if is_rate_limited(user_id):
         return jsonify({"error": "Too many requests"}), 429
 
     # looks through list of rating to find the correct one
     for game in rated_games:
-        # ratingId and username must match
-        if game.ratingId == rating_id and game.username == username:
+        # ratingId and user_id must match
+        if game.ratingId == rating_id and game.userId == user_id:
             # deletes rating
             rated_games.remove(game)
             return jsonify(
