@@ -236,15 +236,16 @@ def delete_rating(rating_id):
     if is_rate_limited(user_id):
         return jsonify({"error": "Too many requests"}), 429
 
-    # looks through list of rating to find the correct one
-    for game in rated_games:
-        # ratingId and user_id must match
-        if game.ratingId == rating_id and game.userId == user_id:
-            # deletes rating
-            rated_games.remove(game)
-            return jsonify(
-                {
-                    "message": "Game rating deleted",
-                }
-            )
-    return jsonify({"error": "Rating not found"}), 404
+    response = table.get_item(Key={'userId': user_id})
+    if 'Item' not in response:
+        return jsonify({"error": "User not found"}), 404
+
+    user = User.from_dict(response['Item'])
+    game_to_delete_index = next((i for i, g in enumerate(user.diary) if g['gameId'] == rating_id), None)
+    if game_to_delete_index is None:
+        return jsonify({"error": "Game not found"}), 404
+    
+    user.diary.pop(game_to_delete_index)
+
+    table.put_item(Item=user.to_dict())
+    return jsonify({"success": True})
