@@ -193,7 +193,7 @@ def get_ratings():
 @app.route("/api/ratings/<rating_id>", methods=["PUT"])
 def update_rating(rating_id):
     data = request.get_json()
-
+    # checks if JSON
     if not data:
         return jsonify({"error": "No data"}), 400
 
@@ -203,24 +203,25 @@ def update_rating(rating_id):
     if not user_id:
         return jsonify({"error": "User ID is required"}), 400
 
-    # rate limit
+    # rate limiting for user
     if is_rate_limited(user_id):
         return jsonify({"error": "Too many requests"}), 429
+    
+    # check if user exists in DB
+    response = table.get_item(Key={'userId': user_id})
+    if 'Item' not in response:
+        return jsonify({"error": "User not found"}), 404
+    
+    user = User.from_dict(response['Item'])
+    game_to_update_index = next((i for i, g in enumerate(user.diary) if g['gameId'] == rating_id), None)
+    if game_to_update_index is None:
+        return jsonify({"error": "Game not found"}), 404
+    
+    updated_game = Game.from_dict({**user.diary[game_to_update_index], **data})
+    user.diary[game_to_update_index] = updated_game.to_dict()
 
-    # go through all rating searching for match(user_ratingID & user_id)
-    for game in rated_games:
-        # checks for a match with ratingID and user_id
-        if game.ratingId == rating_id and game.userId == user_id:
-            # updates game rating and date
-            game.rating = data.get("rating", game.rating)
-            game.dateCompleted = data.get("dateCompleted", game.dateCompleted)
-
-            return (
-                jsonify({"message": "Game rating updated", "rating": game.__dict__}),
-                200,
-            )
-
-    return jsonify({"error": "Rating not found"}), 404
+    table.put_item(Item=user.to_dict())
+    return jsonify(updated_game.to_dict())
 
 
 # DELETE Endpoint: deletes a game rating
