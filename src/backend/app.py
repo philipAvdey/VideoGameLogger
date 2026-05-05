@@ -181,14 +181,12 @@ def get_ratings():
     if is_rate_limited(user_id):
         return jsonify({"error": "Too many requests"}), 429
 
-    # returns user's ratings
-    user_ratings = []
-
-    # loop to go through every saved game in list
-    for game in rated_games:
-        if game.userId == user_id:  # matches rating to user
-            user_ratings.append(game)  # adds rating to user's list
-    return jsonify({"userRatings": [rating.__dict__ for rating in user_ratings]})
+    response = table.get_item(Key={'userId': user_id})
+    if 'Item' not in response:
+        return jsonify({'error': 'User not found'}), 404
+    
+    user = User.from_dict(response['Item'])
+    return jsonify(user.diary)
 
 
 # PUT Endpoint: updates a game rating
