@@ -27,7 +27,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout }) => {
   const loadRatedGames = async () => {
     try {
       const response = await fetch(
-        `${backendBaseUrl}/api/ratings?user_id=${userId}`,
+        `${backendBaseUrl}/api/ratings?userId=${userId}`,
       );
 
       const data = await response.json();
@@ -149,7 +149,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout }) => {
 
     try {
       const response = await fetch(
-        `${backendBaseUrl}/api/ratings/${game.ratingId}?user_id=${userId}`,
+        `${backendBaseUrl}/api/ratings/${game.ratingId}?userId=${userId}`,
         {
           method: "DELETE",
         },
