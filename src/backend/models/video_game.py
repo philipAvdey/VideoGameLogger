@@ -27,6 +27,10 @@ class Game:
         if not title:
             raise ValueError("User title is required")
         
+        rating_id = data.get('ratingId')
+        if not rating_id or rating_id == '':
+            rating_id = str(uuid.uuid4())
+        
         return cls(
             gameId=data.get('gameId', str(uuid.uuid4())),
             title=title,
@@ -35,7 +39,7 @@ class Game:
             releaseDate=data.get('releaseDate', ''),
             coverArt=data.get('coverArt', ''),
             userId=user_id,
-            ratingId=str(uuid.uuid4())
+            ratingId=rating_id
         )
 
     def to_dict(self) -> dict:

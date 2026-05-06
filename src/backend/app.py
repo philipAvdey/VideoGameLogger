@@ -139,7 +139,7 @@ def add_ratings():
         return jsonify({"error": "No data"}), 400
 
     # gets user ID from json
-    user_id = data.get("user_id")
+    user_id = data.get("userId")
 
     if not user_id:
         return jsonify({"error": "User ID is required"}), 400
@@ -172,7 +172,7 @@ def add_ratings():
 def get_ratings():
     # user_id comes from URL query; ex: /api/ratings?user_id=abc123
     # later with login -> user_id = current_user.id
-    user_id = request.args.get("user_id")
+    user_id = request.args.get("userId")
 
     if not user_id:
         return jsonify({"error": "User ID is required"}), 400
@@ -186,7 +186,7 @@ def get_ratings():
         return jsonify({'error': 'User not found'}), 404
     
     user = User.from_dict(response['Item'])
-    return jsonify(user.diary)
+    return jsonify({"userRatings": user.diary})
 
 
 # PUT Endpoint: updates a game rating
@@ -213,11 +213,11 @@ def update_rating(rating_id):
         return jsonify({"error": "User not found"}), 404
     
     user = User.from_dict(response['Item'])
-    game_to_update_index = next((i for i, g in enumerate(user.diary) if g['gameId'] == rating_id), None)
+    game_to_update_index = next((i for i, g in enumerate(user.diary) if g['ratingId'] == rating_id), None)
     if game_to_update_index is None:
         return jsonify({"error": "Game not found"}), 404
     
-    updated_game = Game.from_dict({**user.diary[game_to_update_index], **data})
+    updated_game = Game.from_dict({**user.diary[game_to_update_index], **data,})
     user.diary[game_to_update_index] = updated_game.to_dict()
 
     table.put_item(Item=user.to_dict())
@@ -227,7 +227,7 @@ def update_rating(rating_id):
 # DELETE Endpoint: deletes a game rating
 @app.route("/api/ratings/<rating_id>", methods=["DELETE"])
 def delete_rating(rating_id):
-    user_id = request.args.get("user_id")
+    user_id = request.args.get("userId")
 
     if not user_id:
         return jsonify({"error": "User ID is required"}), 400
@@ -241,7 +241,7 @@ def delete_rating(rating_id):
         return jsonify({"error": "User not found"}), 404
 
     user = User.from_dict(response['Item'])
-    game_to_delete_index = next((i for i, g in enumerate(user.diary) if g['gameId'] == rating_id), None)
+    game_to_delete_index = next((i for i, g in enumerate(user.diary) if g['ratingId'] == rating_id), None)
     if game_to_delete_index is None:
         return jsonify({"error": "Game not found"}), 404
     
