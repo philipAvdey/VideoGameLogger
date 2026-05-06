@@ -186,6 +186,7 @@ def get_ratings():
         return jsonify({'error': 'User not found'}), 404
     
     user = User.from_dict(response['Item'])
+    print(user.diary)
     return jsonify({"userRatings": user.diary})
 
 
@@ -198,7 +199,7 @@ def update_rating(rating_id):
         return jsonify({"error": "No data"}), 400
 
     # gets user ID from json
-    user_id = data.get("user_id")
+    user_id = data.get("userId")
 
     if not user_id:
         return jsonify({"error": "User ID is required"}), 400
