@@ -21,13 +21,14 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout }) => {
 
   const backendBaseUrl = "http://localhost:5000";
 
-  // temporary username until login is connected
-  const username = "roger";
+
+const user_id = localStorage.getItem("user_id");
+const username = localStorage.getItem("username");
 
   const loadRatedGames = async () => {
     try {
       const response = await fetch(
-        `${backendBaseUrl}/api/ratings?username=${username}`,
+        `${backendBaseUrl}/api/ratings?user_id=${user_id}`,
       );
 
       const data = await response.json();
@@ -90,7 +91,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout }) => {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              username: username,
+              user_id: user_id,
               rating: rating,
               dateCompleted: dateCompleted,
             }),
@@ -111,7 +112,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout }) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            username: username,
+            user_id: user_id,
             title: selectedGame.title,
             rating: rating,
             releaseDate: selectedGame.releaseDate,
@@ -149,7 +150,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout }) => {
 
     try {
       const response = await fetch(
-        `${backendBaseUrl}/api/ratings/${game.ratingId}?username=${username}`,
+        `${backendBaseUrl}/api/ratings/${game.ratingId}?user_id=${user_id}`,
         {
           method: "DELETE",
         },
