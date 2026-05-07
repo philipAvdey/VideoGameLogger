@@ -21,6 +21,8 @@ from models.user import User
 from mypy_boto3_dynamodb.service_resource import Table
 import boto3
 
+from services.auth_service import create_auth_blueprint
+
 load_dotenv()
 app = Flask(__name__)
 CORS(app)
@@ -34,7 +36,7 @@ dynamodb = boto3.resource(
     aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY', 'test')
 )
 
-table: Table = dynamodb.Table('Users')
+table: Table = dynamodb.Table('VideoGameLogger')
 
 
 IGDB_CLIENT_SECRET = os.getenv("IGDB_CLIENT_SECRET")
@@ -74,6 +76,8 @@ def is_rate_limited(user_id):
         return True
     return False
 
+#registers the auth blueprint so Flask can use the login and create account routes
+app.register_blueprint(create_auth_blueprint(table, is_rate_limited))
 
 @app.route("/api/igdb/auth/token", methods=["POST"])
 def get_igdb_token():
@@ -139,7 +143,7 @@ def add_ratings():
         return jsonify({"error": "No data"}), 400
 
     # gets user ID from json
-    user_id = data.get("userId")
+    user_id = data.get("user_id")
 
     if not user_id:
         return jsonify({"error": "User ID is required"}), 400
@@ -153,7 +157,7 @@ def add_ratings():
         return jsonify({"error": "Must have a title and rating"}), 400
     
     # check if user exists in DB
-    response = table.get_item(Key={'userId': user_id})
+    response = table.get_item(Key={'user_id': user_id})
     if 'Item' not in response:
         return jsonify({"error": "User not found"}), 404
     
@@ -172,7 +176,7 @@ def add_ratings():
 def get_ratings():
     # user_id comes from URL query; ex: /api/ratings?user_id=abc123
     # later with login -> user_id = current_user.id
-    user_id = request.args.get("userId")
+    user_id = request.args.get("user_id")
 
     if not user_id:
         return jsonify({"error": "User ID is required"}), 400
@@ -181,7 +185,7 @@ def get_ratings():
     if is_rate_limited(user_id):
         return jsonify({"error": "Too many requests"}), 429
 
-    response = table.get_item(Key={'userId': user_id})
+    response = table.get_item(Key={'user_id': user_id})
     if 'Item' not in response:
         return jsonify({'error': 'User not found'}), 404
     
@@ -199,7 +203,7 @@ def update_rating(rating_id):
         return jsonify({"error": "No data"}), 400
 
     # gets user ID from json
-    user_id = data.get("userId")
+    user_id = data.get("user_id")
 
     if not user_id:
         return jsonify({"error": "User ID is required"}), 400
@@ -209,7 +213,7 @@ def update_rating(rating_id):
         return jsonify({"error": "Too many requests"}), 429
     
     # check if user exists in DB
-    response = table.get_item(Key={'userId': user_id})
+    response = table.get_item(Key={'user_id': user_id})
     if 'Item' not in response:
         return jsonify({"error": "User not found"}), 404
     
@@ -228,7 +232,7 @@ def update_rating(rating_id):
 # DELETE Endpoint: deletes a game rating
 @app.route("/api/ratings/<rating_id>", methods=["DELETE"])
 def delete_rating(rating_id):
-    user_id = request.args.get("userId")
+    user_id = request.args.get("user_id")
 
     if not user_id:
         return jsonify({"error": "User ID is required"}), 400
@@ -237,7 +241,7 @@ def delete_rating(rating_id):
     if is_rate_limited(user_id):
         return jsonify({"error": "Too many requests"}), 429
 
-    response = table.get_item(Key={'userId': user_id})
+    response = table.get_item(Key={'user_id': user_id})
     if 'Item' not in response:
         return jsonify({"error": "User not found"}), 404
 
@@ -250,3 +254,4 @@ def delete_rating(rating_id):
 
     table.put_item(Item=user.to_dict())
     return jsonify({"success": True})
+

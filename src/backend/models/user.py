@@ -5,7 +5,7 @@ import uuid
 
 @dataclass
 class User:
-    userId: str
+    user_id: str
     username: str
     password: str
     diary: List[dict] = field(default_factory=list)
@@ -17,7 +17,7 @@ class User:
             raise ValueError("User data must be a dictionary")
         
         # Ensure required fields exist
-        user_id = data.get('userId')
+        user_id = data.get('user_id')
         username = data.get('username')
         password = data.get('password')
         
@@ -29,7 +29,7 @@ class User:
             raise ValueError("User password is required")
         
         return cls(
-            userId=user_id,
+            user_id=user_id,
             username=username,
             password=password,
             diary=data.get('diary', []),
@@ -38,7 +38,7 @@ class User:
     def to_dict(self) -> dict:
         """Convert User to dictionary"""
         return {
-            'userId': self.userId,
+            'user_id': self.user_id,
             'username': self.username,
             'password': self.password,
             'diary': self.diary,
