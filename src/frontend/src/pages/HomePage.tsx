@@ -19,16 +19,13 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout }) => {
   const [selectedGame, setSelectedGame] = useState<SearchResult | null>(null);
   const [editingGame, setEditingGame] = useState<Game | null>(null);
 
-  const backendBaseUrl = "http://localhost:5000";
-
-
-const user_id = localStorage.getItem("user_id");
-const username = localStorage.getItem("username");
+  const user_id = localStorage.getItem("user_id");
+  // const username = localStorage.getItem("username");
 
   const loadRatedGames = async () => {
     try {
       const response = await fetch(
-        `${backendBaseUrl}/api/ratings?user_id=${user_id}`,
+        `/api/ratings?user_id=${user_id}`,
       );
 
       const data = await response.json();
@@ -51,7 +48,7 @@ const username = localStorage.getItem("username");
     if (query.length > 0) {
       try {
         const response = await fetch(
-          `${backendBaseUrl}/api/igdb/search?query=${encodeURIComponent(query)}`,
+          `/api/igdb/search?query=${encodeURIComponent(query)}`,
         );
 
         const data = await response.json();
@@ -84,7 +81,7 @@ const username = localStorage.getItem("username");
     try {
       if (editingGame) {
         const response = await fetch(
-          `${backendBaseUrl}/api/ratings/${editingGame.ratingId}`,
+          `/api/ratings/${editingGame.ratingId}`,
           {
             method: "PUT",
             headers: {
@@ -106,7 +103,7 @@ const username = localStorage.getItem("username");
 
         setEditingGame(null);
       } else if (selectedGame) {
-        const response = await fetch(`${backendBaseUrl}/api/ratings`, {
+        const response = await fetch(`/api/ratings`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -150,7 +147,7 @@ const username = localStorage.getItem("username");
 
     try {
       const response = await fetch(
-        `${backendBaseUrl}/api/ratings/${game.ratingId}?user_id=${user_id}`,
+        `/api/ratings/${game.ratingId}?user_id=${user_id}`,
         {
           method: "DELETE",
         },

@@ -1,0 +1,31 @@
+version: "3.8"
+
+services:
+  flask-backend:
+    build:
+      context: ./src/backend
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+    environment:
+      FLASK_ENV: production
+      AWS_DEFAULT_REGION: us-east-1
+    networks:
+      - app-network
+
+  react-frontend:
+    build:
+      context: ./src/frontend
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    restart: unless-stopped
+    depends_on:
+      - flask-backend
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

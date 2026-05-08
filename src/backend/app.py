@@ -28,15 +28,26 @@ app = Flask(__name__)
 CORS(app)
 
 # DynamoDB setup
+aws_resource_kwargs = {}
+endpoint_url = os.getenv("AWS_ENDPOINT_URL")
+if endpoint_url:
+    aws_resource_kwargs["endpoint_url"] = endpoint_url
+aws_access_key_id = os.getenv("AWS_ACCESS_KEY_ID")
+aws_secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY")
+if aws_access_key_id and aws_secret_access_key:
+    aws_resource_kwargs["aws_access_key_id"] = aws_access_key_id
+    aws_resource_kwargs["aws_secret_access_key"] = aws_secret_access_key
+aws_session_token = os.getenv("AWS_SESSION_TOKEN")
+if aws_session_token:
+    aws_resource_kwargs["aws_session_token"] = aws_session_token
+
 dynamodb = boto3.resource(
-    'dynamodb',
-    region_name=os.getenv('AWS_DEFAULT_REGION', 'us-east-1'),
-    endpoint_url=os.getenv('AWS_ENDPOINT_URL'),
-    aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID', 'test'),
-    aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY', 'test')
+    "dynamodb",
+    region_name=os.getenv("AWS_DEFAULT_REGION", "us-east-1"),
+    **aws_resource_kwargs,
 )
 
-table: Table = dynamodb.Table('VideoGameLogger')
+table: Table = dynamodb.Table("VideoGameLogger")
 
 
 IGDB_CLIENT_SECRET = os.getenv("IGDB_CLIENT_SECRET")
@@ -51,6 +62,7 @@ rate_limit = {}
 # max requests limit/time window
 RATE_LIMIT = 100
 TIME_WINDOW = 60
+
 
 # TODO: implement with dybamodb (not sure how)
 def is_rate_limited(user_id):
@@ -76,8 +88,10 @@ def is_rate_limited(user_id):
         return True
     return False
 
-#registers the auth blueprint so Flask can use the login and create account routes
+
+# registers the auth blueprint so Flask can use the login and create account routes
 app.register_blueprint(create_auth_blueprint(table, is_rate_limited))
+
 
 @app.route("/api/igdb/auth/token", methods=["POST"])
 def get_igdb_token():
@@ -155,16 +169,16 @@ def add_ratings():
     # makes sure title and rating exist before adding the rating
     if "title" not in data or "rating" not in data:
         return jsonify({"error": "Must have a title and rating"}), 400
-    
+
     # check if user exists in DB
-    response = table.get_item(Key={'user_id': user_id})
-    if 'Item' not in response:
+    response = table.get_item(Key={"user_id": user_id})
+    if "Item" not in response:
         return jsonify({"error": "User not found"}), 404
-    
+
     # creates a new rating to store
     new_game = Game.from_dict(data)
-    
-    user = User.from_dict(response['Item'])
+
+    user = User.from_dict(response["Item"])
     user.diary.append(new_game.to_dict())
 
     table.put_item(Item=user.to_dict())
@@ -185,11 +199,11 @@ def get_ratings():
     if is_rate_limited(user_id):
         return jsonify({"error": "Too many requests"}), 429
 
-    response = table.get_item(Key={'user_id': user_id})
-    if 'Item' not in response:
-        return jsonify({'error': 'User not found'}), 404
-    
-    user = User.from_dict(response['Item'])
+    response = table.get_item(Key={"user_id": user_id})
+    if "Item" not in response:
+        return jsonify({"error": "User not found"}), 404
+
+    user = User.from_dict(response["Item"])
     print(user.diary)
     return jsonify({"userRatings": user.diary})
 
@@ -211,18 +225,25 @@ def update_rating(rating_id):
     # rate limiting for user
     if is_rate_limited(user_id):
         return jsonify({"error": "Too many requests"}), 429
-    
+
     # check if user exists in DB
-    response = table.get_item(Key={'user_id': user_id})
-    if 'Item' not in response:
+    response = table.get_item(Key={"user_id": user_id})
+    if "Item" not in response:
         return jsonify({"error": "User not found"}), 404
-    
-    user = User.from_dict(response['Item'])
-    game_to_update_index = next((i for i, g in enumerate(user.diary) if g['ratingId'] == rating_id), None)
+
+    user = User.from_dict(response["Item"])
+    game_to_update_index = next(
+        (i for i, g in enumerate(user.diary) if g["ratingId"] == rating_id), None
+    )
     if game_to_update_index is None:
         return jsonify({"error": "Game not found"}), 404
-    
-    updated_game = Game.from_dict({**user.diary[game_to_update_index], **data,})
+
+    updated_game = Game.from_dict(
+        {
+            **user.diary[game_to_update_index],
+            **data,
+        }
+    )
     user.diary[game_to_update_index] = updated_game.to_dict()
 
     table.put_item(Item=user.to_dict())
@@ -241,17 +262,18 @@ def delete_rating(rating_id):
     if is_rate_limited(user_id):
         return jsonify({"error": "Too many requests"}), 429
 
-    response = table.get_item(Key={'user_id': user_id})
-    if 'Item' not in response:
+    response = table.get_item(Key={"user_id": user_id})
+    if "Item" not in response:
         return jsonify({"error": "User not found"}), 404
 
-    user = User.from_dict(response['Item'])
-    game_to_delete_index = next((i for i, g in enumerate(user.diary) if g['ratingId'] == rating_id), None)
+    user = User.from_dict(response["Item"])
+    game_to_delete_index = next(
+        (i for i, g in enumerate(user.diary) if g["ratingId"] == rating_id), None
+    )
     if game_to_delete_index is None:
         return jsonify({"error": "Game not found"}), 404
-    
+
     user.diary.pop(game_to_delete_index)
 
     table.put_item(Item=user.to_dict())
     return jsonify({"success": True})
-

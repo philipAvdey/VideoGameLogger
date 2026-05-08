@@ -12,13 +12,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticate }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [error, setError] = useState("");
 
-  const backendBaseUrl = "http://localhost:5000";
-
   const handleLogin = async (username: string, password: string) => {
     try {
       setError("");
 
-      const response = await fetch(`${backendBaseUrl}/api/login`, {
+      const response = await fetch(`/api/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -50,7 +48,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthenticate }) => {
     try {
       setError("");
 
-      const response = await fetch(`${backendBaseUrl}/api/create_account`, {
+      const response = await fetch(`/api/create_account`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
