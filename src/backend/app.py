@@ -43,7 +43,7 @@ if aws_session_token:
 
 dynamodb = boto3.resource(
     "dynamodb",
-    region_name=os.getenv("AWS_DEFAULT_REGION", "us-east-1"),
+    region_name=os.getenv("AWS_DEFAULT_REGION", "us-east-2"),
     **aws_resource_kwargs,
 )
 

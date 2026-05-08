@@ -10,7 +10,7 @@ services:
     restart: unless-stopped
     environment:
       FLASK_ENV: production
-      AWS_DEFAULT_REGION: us-east-1
+      AWS_DEFAULT_REGION: us-east-2
     networks:
       - app-network
 
