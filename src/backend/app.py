@@ -16,7 +16,7 @@ from services.igdb.igdb_service import IgdbAPIService
 
 from models.search_result import SearchResult
 from models.video_game import Game
-from models.user import User
+from models.user import User    
 
 from mypy_boto3_dynamodb.service_resource import Table
 import boto3
