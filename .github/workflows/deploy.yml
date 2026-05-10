@@ -1,0 +1,65 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to EC2
+        env:
+          EC2_ELASTIC_IP: ${{ secrets.EC2_ELASTIC_IP }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          IGDB_CLIENT_ID: ${{ secrets.IGDB_CLIENT_ID }}
+          IGDB_CLIENT_SECRET: ${{ secrets.IGDB_CLIENT_SECRET }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$EC2_SSH_KEY" > ~/.ssh/ec2_key
+          chmod 600 ~/.ssh/ec2_key
+          ssh-keyscan -H $EC2_ELASTIC_IP >> ~/.ssh/known_hosts 2>/dev/null || true
+
+          ssh -i ~/.ssh/ec2_key $EC2_USER@$EC2_ELASTIC_IP << 'DEPLOY'
+            cd ~/app
+            git pull origin main
+            
+            cat > .env <<'ENVEOF'
+            IGDB_CLIENT_ID=$IGDB_CLIENT_ID
+            IGDB_CLIENT_SECRET=$IGDB_CLIENT_SECRET
+            ENVEOF
+            
+            docker-compose down
+            docker-compose up -d --build
+            
+            echo "⏳ Waiting for services to start..."
+            sleep 10
+            
+            echo "🔍 Checking backend health..."
+            if curl -f http://localhost:5000/api/igdb/search?query=test > /dev/null 2>&1; then
+              echo "✅ Backend is healthy"
+            else
+              echo "❌ Backend health check failed"
+              docker-compose logs flask-backend
+              exit 1
+            fi
+            
+            echo "🔍 Checking frontend health..."
+            if curl -f http://localhost:80 > /dev/null 2>&1; then
+              echo "✅ Frontend is healthy"
+            else
+              echo "❌ Frontend health check failed"
+              docker-compose logs react-frontend
+              exit 1
+            fi
+            
+            echo "✅ Deployment complete"
+          DEPLOY
+
+          rm ~/.ssh/ec2_key
