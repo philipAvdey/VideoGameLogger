@@ -27,7 +27,7 @@ jobs:
           ssh-keyscan -H $EC2_ELASTIC_IP >> ~/.ssh/known_hosts 2>/dev/null || true
 
           ssh -i ~/.ssh/ec2_key $EC2_USER@$EC2_ELASTIC_IP << 'DEPLOY'
-            cd ~/app
+            cd ~/VideoGameLogger
             git pull origin main
             
             cat > .env <<'ENVEOF'
