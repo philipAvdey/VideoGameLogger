@@ -31,10 +31,8 @@ jobs:
             cd ~/VideoGameLogger
             git pull origin main
             
-            cat > .env << EOF
-            IGDB_CLIENT_ID=$IGDB_CLIENT_ID
-            IGDB_CLIENT_SECRET=$IGDB_CLIENT_SECRET
-            EOF
+            export IGDB_CLIENT_ID=$IGDB_CLIENT_ID
+            export IGDB_CLIENT_SECRET=$IGDB_CLIENT_SECRET
             
             docker-compose down
             docker-compose up -d --build
