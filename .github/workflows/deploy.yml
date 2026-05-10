@@ -9,7 +9,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: env
-
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -26,39 +26,42 @@ jobs:
           echo "$EC2_SSH_KEY" > ~/.ssh/ec2_key
           chmod 600 ~/.ssh/ec2_key
           ssh-keyscan -H $EC2_ELASTIC_IP >> ~/.ssh/known_hosts 2>/dev/null || true
-
-          ssh -i ~/.ssh/ec2_key $EC2_USER@$EC2_ELASTIC_IP << DEPLOY
+          
+          ssh -i ~/.ssh/ec2_key $EC2_USER@$EC2_ELASTIC_IP "
             cd ~/VideoGameLogger
             git pull origin main
             
-            export IGDB_CLIENT_ID=$IGDB_CLIENT_ID
-            export IGDB_CLIENT_SECRET=$IGDB_CLIENT_SECRET
+            # Create .env file with secrets
+            cat > .env << 'ENVEOF'
+IGDB_CLIENT_ID=$IGDB_CLIENT_ID
+IGDB_CLIENT_SECRET=$IGDB_CLIENT_SECRET
+ENVEOF
             
             docker-compose down
             docker-compose up -d --build
             
-            echo "⏳ Waiting for services to start..."
+            echo '⏳ Waiting for services to start...'
             sleep 10
             
-            echo "🔍 Checking backend health..."
+            echo '🔍 Checking backend health...'
             if curl -f http://localhost:5000/api/igdb/search?query=test > /dev/null 2>&1; then
-              echo "✅ Backend is healthy"
+              echo '✅ Backend is healthy'
             else
-              echo "❌ Backend health check failed"
+              echo '❌ Backend health check failed'
               docker-compose logs flask-backend
               exit 1
             fi
             
-            echo "🔍 Checking frontend health..."
+            echo '🔍 Checking frontend health...'
             if curl -f http://localhost:80 > /dev/null 2>&1; then
-              echo "✅ Frontend is healthy"
+              echo '✅ Frontend is healthy'
             else
-              echo "❌ Frontend health check failed"
+              echo '❌ Frontend health check failed'
               docker-compose logs react-frontend
               exit 1
             fi
             
-            echo "✅ Deployment complete"
-          DEPLOY
-
+            echo '✅ Deployment complete'
+          "
+          
           rm ~/.ssh/ec2_key
