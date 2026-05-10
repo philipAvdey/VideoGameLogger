@@ -11,6 +11,8 @@ services:
     environment:
       FLASK_ENV: production
       AWS_DEFAULT_REGION: us-east-2
+      IGDB_CLIENT_ID: ${IGDB_CLIENT_ID}
+      IGDB_CLIENT_SECRET: ${IGDB_CLIENT_SECRET}
     networks:
       - app-network
 
