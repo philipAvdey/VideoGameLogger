@@ -12,7 +12,25 @@ def create_auth_blueprint(table, is_rate_limited):
     #create new user endpoint
     @auth_bp.route("/api/create_account", methods=["POST"])
     def create_account():
-
+        """Create a new user account.
+        
+        Request Body:
+            {
+                "username": str (required) - Unique username
+                "password": str (required) - User password 
+            }
+        
+        Returns:
+            201 - Account created successfully:
+                {
+                    "message": str - Success message
+                    "user_id": str - Unique user ID
+                    "username": str - Username
+                }
+            400 - Bad request (empty data, missing fields, or username already exists)
+            429 - Too many requests (rate limited)
+        
+        """
         data = request.get_json()   #gets json data
 
         #error check if request is empty
@@ -65,7 +83,28 @@ def create_auth_blueprint(table, is_rate_limited):
     #login endpoint
     @auth_bp.route("/api/login", methods=["POST"])
     def login():
-
+        """Authenticate user and return user info.
+        
+        Request Body:
+            {
+                "username": str (required) - Registered username
+                "password": str (required) - User password
+            }
+        
+        Returns:
+            200 - Login successful:
+                {
+                    "message": str - Success message
+                    "user_id": str - Unique user ID
+                    "username": str - Username
+                    "diary": list - User's rated games
+                }
+            400 - Bad request (empty data or missing fields)
+            401 - Unauthorized (invalid password)
+            404 - User not found (invalid username)
+            429 - Too many requests (rate limited)
+        
+        """
         data = request.get_json()   #gets json data
         #error check for empty body
         if not data:
