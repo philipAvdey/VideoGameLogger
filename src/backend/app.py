@@ -25,7 +25,7 @@ from services.auth_service import create_auth_blueprint
 
 load_dotenv()
 app = Flask(__name__)
-CORS(app) 
+CORS(app)
 
 # DynamoDB setup
 aws_resource_kwargs = {}
