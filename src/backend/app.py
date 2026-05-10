@@ -16,7 +16,7 @@ from services.igdb.igdb_service import IgdbAPIService
 
 from models.search_result import SearchResult
 from models.video_game import Game
-from models.user import User    
+from models.user import User
 
 from mypy_boto3_dynamodb.service_resource import Table
 import boto3
@@ -64,7 +64,6 @@ RATE_LIMIT = 100
 TIME_WINDOW = 60
 
 
-# TODO: implement with dybamodb (not sure how)
 def is_rate_limited(user_id):
     now = time.time()
 
@@ -95,6 +94,21 @@ app.register_blueprint(create_auth_blueprint(table, is_rate_limited))
 
 @app.route("/api/igdb/auth/token", methods=["POST"])
 def get_igdb_token():
+    """Get IGDB API access token.
+
+    Request Body:
+        {} (empty)
+
+    Returns:
+        200 - IGDB access token:
+            {
+                "access_token": str - IGDB API token
+            }
+        500 - Credentials not configured:
+            {
+                "error": str - Error message
+            }
+    """
     if IGDB_CLIENT_SECRET is None or IGDB_CLIENT_ID is None:
         return jsonify({"error": "Credentials not set"}), 500
     token = game_service._get_token()
@@ -103,6 +117,29 @@ def get_igdb_token():
 
 @app.route("/api/igdb/search", methods=["GET"])
 def search_games():
+    """Search for games.
+
+    Request Body:
+        {
+            "query": str (required) - Video game name to search for
+        }
+
+    Returns:
+        200 - List of games matching query:
+            [
+                {
+                    "id": int - Game ID
+                    "title": str - Game title
+                    "releaseDate": str - Game release date
+                    "coverArt": str - link to game cover art
+                    "ratingCount": int - num of ratings this game has
+                }
+            ]
+        500 - Internal error:
+            {
+                "Search error": str - Error message
+            }
+    """
     query = request.args.get("query", "")
 
     if not query or len(query.strip()) == 0:
@@ -150,6 +187,38 @@ def search_games():
 # POST Endpoint: adds new game rating to corresponding user ID
 @app.route("/api/ratings", methods=["POST"])
 def add_ratings():
+    """Add a new game rating for a user.
+
+    Request Body:
+        {
+            "user_id": str (required) - User ID
+            "title": str (required) - Game title
+            "rating": int (required) - Rating value (1-5)
+            "gameId": str - Game ID
+            "dateCompleted": str - Date Game completed
+            "releaseDate": str - Game release date
+            "coverArt": str - link to game cover art
+            "ratingId": str - ID of this diary entry (game rating)
+        }
+
+    Returns:
+        201 - Game rating created:
+            {
+                "user_id": str (required) - User ID
+                "title": str (required) - Game title
+                "rating": int (required) - Rating value (1-5)
+                "gameId": str - Game ID
+                "dateCompleted": str - Date Game completed
+                "releaseDate": str - Game release date
+                "coverArt": str - link to game cover art
+                "ratingId": str - ID of this diary entry (game rating)
+            }
+        400 - Bad request (missing data/fields)
+        404 - User not found
+        429 - Too many requests (rate limited)
+
+    """
+
     data = request.get_json()
 
     # checks if JSON
@@ -188,6 +257,33 @@ def add_ratings():
 # GET Endpoint: gets all rated games
 @app.route("/api/ratings", methods=["GET"])
 def get_ratings():
+    """Get all game ratings for a user.
+
+    Query Parameters:
+        user_id: str (required) - User ID (inside URL, e.g., /api/ratings?user_id=abc123)
+
+    Returns:
+        200 - List of user ratings:
+            {
+                "userRatings": [
+                    {
+                        "user_id": str (required) - User ID
+                        "title": str (required) - Game title
+                        "rating": int (required) - Rating value (1-5)
+                        "gameId": str - Game ID
+                        "dateCompleted": str - Date Game completed
+                        "releaseDate": str - Game release date
+                        "coverArt": str - link to game cover art
+                        "ratingId": str - ID of this diary entry (game rating)
+                    }
+                ]
+            }
+        400 - Missing user_id parameter
+        404 - User not found
+        429 - Too many requests (rate limited)
+
+    TODO: [ADD MORE DETAILS HERE]
+    """
     # user_id comes from URL query; ex: /api/ratings?user_id=abc123
     # later with login -> user_id = current_user.id
     user_id = request.args.get("user_id")
@@ -211,6 +307,40 @@ def get_ratings():
 # PUT Endpoint: updates a game rating
 @app.route("/api/ratings/<rating_id>", methods=["PUT"])
 def update_rating(rating_id):
+    """Update an existing game rating.
+
+    Path Parameters:
+        rating_id: str (required) - Rating ID to update
+
+    Request Body:
+        {
+            "user_id": str (required) - User ID
+            "title": str (required) - Game title
+            "rating": int (required) - Rating value (1-5)
+            "gameId": str - Game ID
+            "dateCompleted": str - Date Game completed
+            "releaseDate": str - Game release date
+            "coverArt": str - link to game cover art
+            "ratingId": str - ID of this diary entry (game rating)
+        }
+
+    Returns:
+        200 - Updated game rating:
+            {
+                "user_id": str (required) - User ID
+                "title": str (required) - Game title
+                "rating": int (required) - Rating value (1-5)
+                "gameId": str - Game ID
+                "dateCompleted": str - Date Game completed
+                "releaseDate": str - Game release date
+                "coverArt": str - link to game cover art
+                "ratingId": str - ID of this diary entry (game rating)
+            }
+        400 - Bad request (missing data)
+        404 - User or game rating not found
+        429 - Too many requests (rate limited)
+
+    """
     data = request.get_json()
     # checks if JSON
     if not data:
@@ -253,6 +383,24 @@ def update_rating(rating_id):
 # DELETE Endpoint: deletes a game rating
 @app.route("/api/ratings/<rating_id>", methods=["DELETE"])
 def delete_rating(rating_id):
+    """Delete a game rating for a user.
+
+    Path Parameters:
+        rating_id: str (required) - Rating ID to delete
+
+    Query Parameters:
+        user_id: str (required) - User ID (e.g., /api/ratings/<id>?user_id=abc123)
+
+    Returns:
+        200 - Rating deleted successfully:
+            {
+                "success": bool - True if deleted
+            }
+        400 - Missing user_id parameter
+        404 - User or game rating not found
+        429 - Too many requests (rate limited)
+
+    """
     user_id = request.args.get("user_id")
 
     if not user_id:
