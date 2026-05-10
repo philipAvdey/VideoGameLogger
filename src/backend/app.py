@@ -1,7 +1,3 @@
-# TODO: create endpoints
-# TODO: probably should use multiple files for different purposes; e.g. login, user_services, data_services, etc.
-
-
 import os
 import uuid
 import time
@@ -282,7 +278,6 @@ def get_ratings():
         404 - User not found
         429 - Too many requests (rate limited)
 
-    TODO: [ADD MORE DETAILS HERE]
     """
     # user_id comes from URL query; ex: /api/ratings?user_id=abc123
     # later with login -> user_id = current_user.id

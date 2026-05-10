@@ -6,7 +6,7 @@ class Game:
     gameId: str
     title: str
     rating: int
-    dateCompleted: str # TODO: use more precise, like seconds? 
+    dateCompleted: str
     releaseDate: str
     coverArt: str
     userId: str

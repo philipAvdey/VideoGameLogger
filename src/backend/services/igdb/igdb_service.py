@@ -17,8 +17,6 @@ class IgdbAPIService:
         if self.token and time.time() < self.expires_at - 300:
             return self.token
 
-        # TODO: rate limiting?
-
         response = requests.post(
             f"{self.base_url}/token",
             params={
